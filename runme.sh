@@ -6,15 +6,19 @@ if [ "$#" -ne 3 ]; then
 fi
 
 
-for x in *.7z
+for x in $(ls -S *.7z);
 do
   table=${x%%.*}
   echo $table
-  mkdir -p $table && cp "$x" $table
-  cd  $table
-  p7zip -d $x
-  cp ../import.sql .
-  sed -i "s/REPLACEME/$table/g" import.sql
-  mysql -h $1 -u $2 -p$3 < import.sql
-  cd ..
+  if [ -d "$table" ]; then
+    echo "Folder Found, skipping $table"
+  else
+    mkdir -p $table && cp "$x" $table
+    cd  $table
+    p7zip -d $x
+    cp ../import.sql .
+    sed -i "s/REPLACEME/$table/g" import.sql
+    mysql -h $1 -u $2 -p$3 < import.sql
+    cd ..
+  fi
 done
