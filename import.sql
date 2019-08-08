@@ -12,23 +12,23 @@
 CREATE DATABASE IF NOT EXISTS sample_rep;
 USE sample_rep;
 
-DROP TABLE IF EXISTS sample_rep.REPLACEMEPostTags;
-DROP TABLE IF EXISTS sample_rep.REPLACEMETags;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_PostTags;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Tags;
 DROP TABLE IF EXISTS sample_rep.VotesXml;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEVotes;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEPostHistory;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEComments;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEPosts;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Votes;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_PostHistory;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Comments;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Posts;
 DROP TABLE IF EXISTS sample_rep.BadgesXml;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEBadges;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEBadgeTypes;
-DROP TABLE IF EXISTS sample_rep.REPLACEMEUsers;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Badges;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_BadgeTypes;
+DROP TABLE IF EXISTS sample_rep.REPLACEME_Users;
 
 SET @DATETIME_ISO8601 = '%Y-%m-%dT%H:%i:%s.%f';
 
 /* ---------------------------------------------------------------------- */
 
-CREATE TABLE REPLACEMEUsers (
+CREATE TABLE REPLACEME_Users (
   Id               INT AUTO_INCREMENT PRIMARY KEY,
   Reputation       INT UNSIGNED NOT NULL DEFAULT 1,
   CreationDate     DATETIME NOT NULL,
@@ -43,12 +43,12 @@ CREATE TABLE REPLACEMEUsers (
   DownVotes        INT UNSIGNED NOT NULL DEFAULT 0
 );
 
-LOAD XML LOCAL INFILE 'Users.xml' INTO TABLE REPLACEMEUsers
+LOAD XML LOCAL INFILE 'Users.xml' INTO TABLE REPLACEME_Users
 (Id, Reputation, @CreationDate, DisplayName, @LastAccessDate, WebsiteUrl, Location, Age, AboutMe, Views, UpVotes, DownVotes)
 SET CreationDate = STR_TO_DATE(@CreationDate, @DATETIME_ISO8601),
     LastAccessDate = STR_TO_DATE(@LastAccessDate, @DATETIME_ISO8601);
 
-ANALYZE TABLE REPLACEMEUsers;
+ANALYZE TABLE REPLACEME_Users;
 
 /* ---------------------------------------------------------------------- */
 
@@ -64,38 +64,38 @@ CREATE TABLE BadgesXml (
 LOAD XML LOCAL INFILE 'Badges.xml' INTO TABLE BadgesXml
 (Id, UserId, Name, Date, Class, TagBased);
 
-CREATE TABLE REPLACEMEBadgeTypes (
+CREATE TABLE REPLACEME_BadgeTypes (
   Id               SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   Description      TINYTEXT NOT NULL,
   TagBased         TINYINT(1) NOT NULL DEFAULT FALSE
 );
 
-INSERT INTO REPLACEMEBadgeTypes (Description, TagBased) SELECT DISTINCT Name, TagBased='True' FROM BadgesXml;
+INSERT INTO REPLACEME_BadgeTypes (Description, TagBased) SELECT DISTINCT Name, TagBased='True' FROM BadgesXml;
 
-ANALYZE TABLE REPLACEMEBadgeTypes;
+ANALYZE TABLE REPLACEME_BadgeTypes;
 
-CREATE TABLE REPLACEMEBadges (
+CREATE TABLE REPLACEME_Badges (
   Id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   BadgeTypeId      SMALLINT UNSIGNED NOT NULL,
   UserId           INT NOT NULL,
   CreationDate     DATETIME NULL
 );
 
-INSERT INTO REPLACEMEBadges (Id, BadgeTypeId, UserId, CreationDate)
+INSERT INTO REPLACEME_Badges (Id, BadgeTypeId, UserId, CreationDate)
 SELECT b.Id, t.Id, b.UserId, STR_TO_DATE(b.Date, @DATETIME_ISO8601)
-FROM BadgesXml AS b JOIN REPLACEMEBadgeTypes AS t ON b.Name=t.Description;
+FROM BadgesXml AS b JOIN REPLACEME_BadgeTypes AS t ON b.Name=t.Description;
 
 DROP TABLE BadgesXml;
 
-ALTER TABLE REPLACEMEBadges
-  ADD FOREIGN KEY (BadgeTypeId) REFERENCES REPLACEMEBadgeTypes(Id),
-  ADD FOREIGN KEY (UserId) REFERENCES REPLACEMEUsers(Id);
+ALTER TABLE REPLACEME_Badges
+  ADD FOREIGN KEY (BadgeTypeId) REFERENCES REPLACEME_BadgeTypes(Id),
+  ADD FOREIGN KEY (UserId) REFERENCES REPLACEME_Users(Id);
 
-ANALYZE TABLE REPLACEMEBadges;
+ANALYZE TABLE REPLACEME_Badges;
 
 /* ---------------------------------------------------------------------- */
 
-CREATE TABLE REPLACEMEPosts (
+CREATE TABLE REPLACEME_Posts (
   Id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   PostTypeId       TINYINT UNSIGNED NOT NULL,
   AcceptedAnswerId INT UNSIGNED NULL, -- only if PostTypeId = 1
@@ -116,28 +116,28 @@ CREATE TABLE REPLACEMEPosts (
   ClosedDate       DATETIME NULL
 );
 
-LOAD XML LOCAL INFILE 'Posts.xml' INTO TABLE REPLACEMEPosts
+LOAD XML LOCAL INFILE 'Posts.xml' INTO TABLE REPLACEME_Posts
 (Id, PostTypeId, AcceptedAnswerId, ParentId, @CreationDate, Score, ViewCount, Body, OwnerUserId, LastEditorUserId, @LastEditDate, @LastActivityDate, Title, Tags, AnswerCount, CommentCount, FavoriteCount, @ClosedDate)
 SET CreationDate = STR_TO_DATE(@CreationDate, @DATETIME_ISO8601),
     LastEditDate = STR_TO_DATE(@LastEditDate, @DATETIME_ISO8601),
     LastActivityDate = STR_TO_DATE(@LastActivityDate, @DATETIME_ISO8601),
     ClosedDate = STR_TO_DATE(@ClosedDate, @DATETIME_ISO8601);
 
-ALTER TABLE REPLACEMEPosts
+ALTER TABLE REPLACEME_Posts
   ADD FOREIGN KEY (PostTypeId) REFERENCES PostTypes(Id),
-  ADD FOREIGN KEY (AcceptedAnswerId) REFERENCES REPLACEMEPosts(Id),
-  ADD FOREIGN KEY (ParentId) REFERENCES REPLACEMEPosts(Id),
-  ADD FOREIGN KEY (OwnerUserId) REFERENCES REPLACEMEUsers(Id),
-  ADD FOREIGN KEY (LastEditorUserId) REFERENCES REPLACEMEUsers(Id);
+  ADD FOREIGN KEY (AcceptedAnswerId) REFERENCES REPLACEME_Posts(Id),
+  ADD FOREIGN KEY (ParentId) REFERENCES REPLACEME_Posts(Id),
+  ADD FOREIGN KEY (OwnerUserId) REFERENCES REPLACEME_Users(Id),
+  ADD FOREIGN KEY (LastEditorUserId) REFERENCES REPLACEME_Users(Id);
 
-ANALYZE TABLE REPLACEMEPosts;
+ANALYZE TABLE REPLACEME_Posts;
 
-CREATE OR REPLACE VIEW REPLACEMEQuestions AS SELECT * FROM REPLACEMEPosts WHERE PostTypeId = 1;
-CREATE OR REPLACE VIEW REPLACEMEAnswers   AS SELECT * FROM REPLACEMEPosts WHERE PostTypeId = 2;
+CREATE OR REPLACE VIEW REPLACEME_Questions AS SELECT * FROM REPLACEME_Posts WHERE PostTypeId = 1;
+CREATE OR REPLACE VIEW REPLACEME_Answers   AS SELECT * FROM REPLACEME_Posts WHERE PostTypeId = 2;
 
 /* ---------------------------------------------------------------------- */
 
-CREATE TABLE REPLACEMEComments (
+CREATE TABLE REPLACEME_Comments (
   Id               INT UNSIGNED PRIMARY KEY,
   PostId           INT UNSIGNED NOT NULL,
   Score            INT NOT NULL,
@@ -146,21 +146,21 @@ CREATE TABLE REPLACEMEComments (
   UserId           INT NOT NULL
 );
 
-LOAD XML LOCAL INFILE 'Comments.xml' INTO TABLE REPLACEMEComments
+LOAD XML LOCAL INFILE 'Comments.xml' INTO TABLE REPLACEME_Comments
 (Id, PostId, Score, Text, @CreationDate, UserId)
 SET CreationDate = STR_TO_DATE(@CreationDate, @DATETIME_ISO8601);
 
-DELETE c FROM REPLACEMEComments c LEFT JOIN REPLACEMEUsers u ON c.UserId=u.Id WHERE u.Id IS NULL;
+DELETE c FROM REPLACEME_Comments c LEFT JOIN REPLACEME_Users u ON c.UserId=u.Id WHERE u.Id IS NULL;
 
-ALTER TABLE REPLACEMEComments
-  ADD FOREIGN KEY (PostId) REFERENCES REPLACEMEPosts(Id),
-  ADD FOREIGN KEY (UserId) REFERENCES REPLACEMEUsers(Id);
+ALTER TABLE REPLACEME_Comments
+  ADD FOREIGN KEY (PostId) REFERENCES REPLACEME_Posts(Id),
+  ADD FOREIGN KEY (UserId) REFERENCES REPLACEME_Users(Id);
 
-ANALYZE TABLE REPLACEMEComments;
+ANALYZE TABLE REPLACEME_Comments;
 
 /* ---------------------------------------------------------------------- */
 
-CREATE TABLE REPLACEMEPostHistory (
+CREATE TABLE REPLACEME_PostHistory (
   Id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   PostHistoryTypeId TINYINT UNSIGNED NOT NULL,
   PostId           INT UNSIGNED NOT NULL,
@@ -170,18 +170,18 @@ CREATE TABLE REPLACEMEPostHistory (
   Text             TEXT NULL
 );
 
-LOAD XML LOCAL INFILE 'PostHistory.xml' INTO TABLE REPLACEMEPostHistory
+LOAD XML LOCAL INFILE 'PostHistory.xml' INTO TABLE REPLACEME_PostHistory
 (Id, PostHistoryTypeId, PostId, RevisionGUID, @CreationDate, UserId, Text)
 SET CreationDate = STR_TO_DATE(@CreationDate, @DATETIME_ISO8601);
 
-DELETE h FROM REPLACEMEPostHistory h LEFT JOIN REPLACEMEUsers u ON h.PostHistoryTypeId=u.Id WHERE u.Id IS NULL;
+DELETE h FROM REPLACEME_PostHistory h LEFT JOIN REPLACEME_Users u ON h.PostHistoryTypeId=u.Id WHERE u.Id IS NULL;
 
-ALTER TABLE REPLACEMEPostHistory
+ALTER TABLE REPLACEME_PostHistory
   /* ADD FOREIGN KEY (PostHistoryTypeId) REFERENCES PostHistoryTypes(Id), */
-  ADD FOREIGN KEY (PostId) REFERENCES REPLACEMEPosts(Id),
-  ADD FOREIGN KEY (UserId) REFERENCES REPLACEMEUsers(Id);
+  ADD FOREIGN KEY (PostId) REFERENCES REPLACEME_Posts(Id),
+  ADD FOREIGN KEY (UserId) REFERENCES REPLACEME_Users(Id);
 
-ANALYZE TABLE REPLACEMEPostHistory;
+ANALYZE TABLE REPLACEME_PostHistory;
 
 /* ---------------------------------------------------------------------- */
 
@@ -196,7 +196,7 @@ CREATE TABLE VotesXml (
 LOAD XML LOCAL INFILE 'Votes.xml' INTO TABLE VotesXml
 (Id, PostId, VoteTypeId, UserId, CreationDate);
 
-CREATE TABLE REPLACEMEVotes (
+CREATE TABLE REPLACEME_Votes (
   Id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   PostId           INT UNSIGNED NOT NULL,
   VoteTypeId       TINYINT UNSIGNED NOT NULL,
@@ -204,20 +204,20 @@ CREATE TABLE REPLACEMEVotes (
   CreationDate     DATETIME NOT NULL
 );
 
-INSERT INTO REPLACEMEVotes (Id, PostId, VoteTypeId, UserId, CreationDate)
+INSERT INTO REPLACEME_Votes (Id, PostId, VoteTypeId, UserId, CreationDate)
 SELECT v.Id, v.PostId, v.VoteTypeId, v.UserId, STR_TO_DATE(v.CreationDate, @DATETIME_ISO8601)
 FROM VotesXml AS v;
 
 DROP TABLE VotesXml;
 
-DELETE v FROM REPLACEMEVotes AS v LEFT JOIN REPLACEMEPosts AS p ON v.PostId=p.Id WHERE p.Id IS NULL;
+DELETE v FROM REPLACEME_Votes AS v LEFT JOIN REPLACEME_Posts AS p ON v.PostId=p.Id WHERE p.Id IS NULL;
 
-ALTER TABLE REPLACEMEVotes
-  ADD FOREIGN KEY (PostId) REFERENCES REPLACEMEPosts(Id),
-  ADD FOREIGN KEY (UserId) REFERENCES REPLACEMEUsers(Id),
+ALTER TABLE REPLACEME_Votes
+  ADD FOREIGN KEY (PostId) REFERENCES REPLACEME_Posts(Id),
+  ADD FOREIGN KEY (UserId) REFERENCES REPLACEME_Users(Id),
   ADD FOREIGN KEY (VoteTypeId) REFERENCES VoteTypes(Id);
 
-ANALYZE TABLE REPLACEMEVotes;
+ANALYZE TABLE REPLACEME_Votes;
 
 /* ---------------------------------------------------------------------- */
 
