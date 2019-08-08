@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ "$#" -ne 1 ]; then
+if [ "$#" -ne 3 ]; then
   echo "Run with three arguements: Host User Password for MySQL"
   echo "Example ./runme.sh 1.1.1.1 root password"
   exit 1
@@ -15,6 +15,6 @@ do
   p7zip -d $x
   cp ../import.sql .
   sed -i "s/REPLACEME/$table/g" import.sql
-  mysql -h $0 -u $1 -p$2 < import.sql
+  mysql -h $1 -u $2 -p$3 < import.sql
   cd ..
 done
